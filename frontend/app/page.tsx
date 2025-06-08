@@ -69,7 +69,7 @@ export default function Home() {
           isoffer?: boolean;
         };
 
-        const productos = productosData as ProductoRaw[];
+        const productos = productosData as unknown as ProductoRaw[];
 
         const mapped = productos.map((prod) => {
           const precioPesos = prod.preciousd * valorDolar;
@@ -122,23 +122,25 @@ export default function Home() {
       ) : (
         <>
           {/* Sticky en desktop */}
-          <div className="sticky top-0 z-[9999] bg-white shadow-md px-4 py-3 overflow-visible">
-            <div className="max-w-7xl mx-auto flex flex-col gap-4">
-              <SearchBar onSearch={(query) => setSearchTerm(query)} />
-              <div className="flex justify-center mt-2">
-                <CategoryMenu
-                  selectedCategory={selectedCategory}
-                  onSelectCategory={setSelectedCategory}
-                />
+          <div className="sticky top-0 z-[9999] shadow-md overflow-visible">
+            <div className="bg-red-600 px-4 py-3">
+              <div className="max-w-7xl mx-auto flex flex-col gap-4">
+                <SearchBar onSearch={(query) => setSearchTerm(query)} />
+                <div className="flex justify-center">
+                  <CategoryMenu
+                    selectedCategory={selectedCategory}
+                    onSelectCategory={setSelectedCategory}
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Static en mobile */}
-          <div className="block md:hidden px-4 py-3 bg-white shadow-md">
+          <div className="block md:hidden bg-red-600 px-4 py-3 shadow-md">
             <div className="max-w-7xl mx-auto flex flex-col gap-4">
               <SearchBar onSearch={(query) => setSearchTerm(query)} />
-              <div className="flex justify-center mt-2 overflow-x-auto no-scrollbar">
+              <div className="flex justify-center overflow-x-auto no-scrollbar">
                 <CategoryMenu
                   selectedCategory={selectedCategory}
                   onSelectCategory={setSelectedCategory}
