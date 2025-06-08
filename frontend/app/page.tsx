@@ -5,7 +5,6 @@ import ProductGrid from '@/components/ProductGrid';
 import SearchBar from '@/components/SearchBar';
 import Loader from '@/components/Loader';
 import FeaturedCarousel from '@/components/FeaturedCarousel';
-import Header from '@/components/Header';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import { useEffect, useState } from 'react';
 import { Product } from '@/types';
@@ -62,9 +61,9 @@ export default function Home() {
           nombre: string;
           nombreimagen: string | null;
           preciousd: number;
-          categoria?: { nombre: string } | { nombre: string }[] | null;
-          subcategoria?: { nombre: string } | { nombre: string }[] | null;
-          subsubcategoria?: { nombre: string } | { nombre: string }[] | null;
+          categoria?: { nombre: string } | null;
+          subcategoria?: { nombre: string } | null;
+          subsubcategoria?: { nombre: string } | null;
           descripcion?: string | null;
           masinfo?: string | null;
           isoffer?: boolean;
@@ -77,18 +76,14 @@ export default function Home() {
           const precioRedondeado = Math.ceil(precioPesos / 100) * 100;
           const precioFormateado = `$ ${precioRedondeado.toLocaleString('es-AR')}`;
 
-          const categoria = Array.isArray(prod.categoria) ? prod.categoria[0]?.nombre : prod.categoria?.nombre;
-          const subcategoria = Array.isArray(prod.subcategoria) ? prod.subcategoria[0]?.nombre : prod.subcategoria?.nombre;
-          const subsubcategoria = Array.isArray(prod.subsubcategoria) ? prod.subsubcategoria[0]?.nombre : prod.subsubcategoria?.nombre;
-
           return {
             id: prod.id,
             name: prod.nombre,
             image: prod.nombreimagen ? `/images/${prod.nombreimagen}` : undefined,
             price: precioFormateado,
-            category: categoria || '',
-            subcategory: subcategoria || '',
-            subSubcategory: subsubcategoria || '',
+            category: prod.categoria?.nombre || '',
+            subcategory: prod.subcategoria?.nombre || '',
+            subSubcategory: prod.subsubcategoria?.nombre || '',
             descripcion: prod.descripcion || '',
             masinfo: prod.masinfo || '',
             isOffer: prod.isoffer === true,
@@ -110,33 +105,40 @@ export default function Home() {
   const filteredProducts = products.filter((p) => {
     const coincideBusqueda = p.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    if (searchTerm.trim() !== '') {
-      return coincideBusqueda;
-    }
+    if (searchTerm.trim() !== '') return coincideBusqueda;
 
-    const coincideCategoria =
+    return (
       !selectedCategory ||
       p.category === selectedCategory ||
       p.subcategory === selectedCategory ||
-      p.subSubcategory === selectedCategory;
-
-    return coincideCategoria;
+      p.subSubcategory === selectedCategory
+    );
   });
 
   return (
-    <main className="min-h-screen flex flex-col">
-      <Header />
-
+    <main className="relative flex flex-col flex-grow bg-white text-black">
       {loading ? (
         <Loader />
       ) : (
         <>
-          <div className="sticky top-0 w-full bg-white shadow-md z-30 px-4 py-3">
-            <div className="max-w-7xl mx-auto flex flex-col sm:flex-col gap-4">
-              <div className="w-full">
-                <SearchBar onSearch={(query) => setSearchTerm(query)} />
+          {/* Sticky en desktop */}
+          <div className="sticky top-0 z-[9999] bg-white shadow-md px-4 py-3 overflow-visible">
+            <div className="max-w-7xl mx-auto flex flex-col gap-4">
+              <SearchBar onSearch={(query) => setSearchTerm(query)} />
+              <div className="flex justify-center mt-2">
+                <CategoryMenu
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                />
               </div>
-              <div className="flex justify-center">
+            </div>
+          </div>
+
+          {/* Static en mobile */}
+          <div className="block md:hidden px-4 py-3 bg-white shadow-md">
+            <div className="max-w-7xl mx-auto flex flex-col gap-4">
+              <SearchBar onSearch={(query) => setSearchTerm(query)} />
+              <div className="flex justify-center mt-2 overflow-x-auto no-scrollbar">
                 <CategoryMenu
                   selectedCategory={selectedCategory}
                   onSelectCategory={setSelectedCategory}

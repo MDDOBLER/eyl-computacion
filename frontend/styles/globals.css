@@ -2,9 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Estilos globales opcionales */
+/* Estilos globales */
 body {
   @apply bg-white text-gray-900;
   font-family: 'Inter', sans-serif;
   scroll-behavior: smooth;
+  position: relative; /* 💡 Esto permite que los menús se superpongan correctamente */
+  z-index: 0;          /* Asegura el stacking context base */
+}
+
+/* Oculta scroll horizontal pero permite desplazamiento */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE y Edge */
+  scrollbar-width: none;    /* Firefox */
 }
