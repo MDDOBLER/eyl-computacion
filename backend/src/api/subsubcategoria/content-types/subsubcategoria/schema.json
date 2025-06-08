@@ -1,0 +1,26 @@
+{
+  "kind": "collectionType",
+  "collectionName": "subsubcategorias",
+  "info": {
+    "singularName": "subsubcategoria",
+    "pluralName": "subsubcategorias",
+    "displayName": "subsubcategoria",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "nombre": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "subcategoria": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::subcategoria.subcategoria",
+      "inversedBy": "subsubcategorias"
+    }
+  }
+}

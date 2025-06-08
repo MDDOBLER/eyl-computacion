@@ -1,0 +1,19 @@
+{
+  "kind": "collectionType",
+  "collectionName": "dolars",
+  "info": {
+    "singularName": "dolar",
+    "pluralName": "dolars",
+    "displayName": "dolar",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "valor": {
+      "type": "decimal",
+      "required": true
+    }
+  }
+}
