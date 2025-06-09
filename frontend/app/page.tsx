@@ -123,13 +123,16 @@ export default function Home() {
         <>
           {/* Sticky en desktop */}
           <div className="sticky top-0 z-[9999] shadow-md overflow-visible">
-            <div className="bg-red-600 px-4 py-3">
+            <div className="bg-red-600 px-4 py-1">
               <div className="max-w-7xl mx-auto flex flex-col gap-4">
                 <SearchBar onSearch={(query) => setSearchTerm(query)} />
                 <div className="flex justify-center">
                   <CategoryMenu
                     selectedCategory={selectedCategory}
-                    onSelectCategory={setSelectedCategory}
+                    onSelectCategory={(cat) => {
+                      setSelectedCategory(cat);
+                      setSearchTerm('');
+                    }}
                   />
                 </div>
               </div>
@@ -137,13 +140,16 @@ export default function Home() {
           </div>
 
           {/* Static en mobile */}
-          <div className="block md:hidden bg-red-600 px-4 py-3 shadow-md">
+          <div className="block md:hidden bg-red-600 px-4 py-1 shadow-md">
             <div className="max-w-7xl mx-auto flex flex-col gap-4">
               <SearchBar onSearch={(query) => setSearchTerm(query)} />
               <div className="flex justify-center overflow-x-auto no-scrollbar">
                 <CategoryMenu
                   selectedCategory={selectedCategory}
-                  onSelectCategory={setSelectedCategory}
+                  onSelectCategory={(cat) => {
+                    setSelectedCategory(cat);
+                    setSearchTerm('');
+                  }}
                 />
               </div>
             </div>
