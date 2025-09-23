@@ -5,3 +5,7 @@ out/
 .next/
 .cache/
 build/
+node_modules/
+.env
+.env.local
+.vscode/
