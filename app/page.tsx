@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useDeferredValue } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Menu } from "lucide-react";
 
@@ -14,8 +14,8 @@ import MobileSidebar from "@/components/MobileSidebar";
 import { Product } from "@/types"; // Asegurate de tener este tipo bien definido
 
 const supabase = createClient(
-  "https://okhvjishzlennulkzhek.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9raHZqaXNoemxlbm51bGt6aGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwODIxMDYsImV4cCI6MjA2NDY1ODEwNn0.P-r2eVXZfZFjF4RlLCRG61-kMFifLM6DOG9Qlfqq6gg"
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 // Tipamos el resultado crudo que viene de Supabase
@@ -32,9 +32,18 @@ type ProductoRaw = {
   isoffer?: boolean;
 };
 
+// --- helper: quita tildes y pasa a lowercase ---
+const normalize = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    // elimina marcas diacríticas combinantes (compatible sin ES2018)
+    .replace(/[\u0300-\u036f]/g, "");
+
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const deferredSearch = useDeferredValue(searchTerm);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -114,20 +123,35 @@ export default function Home() {
     loadProducts();
   }, []);
 
-  const filteredProducts = products.filter((p) => {
-    const coincideBusqueda = p.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+  // --- filtro combinado y memoizado ---
+  const filteredProducts = useMemo(() => {
+    const q = normalize(deferredSearch).trim();
+    const tokens = q.length ? q.split(/\s+/) : [];
 
-    if (searchTerm.trim() !== "") return coincideBusqueda;
+    return products.filter((p) => {
+      const catMatch =
+        !selectedCategory ||
+        p.category === selectedCategory ||
+        p.subcategory === selectedCategory ||
+        p.subSubcategory === selectedCategory;
 
-    return (
-      !selectedCategory ||
-      p.category === selectedCategory ||
-      p.subcategory === selectedCategory ||
-      p.subSubcategory === selectedCategory
-    );
-  });
+      if (!tokens.length) return catMatch;
+
+      const searchable = normalize(
+        [
+          p.name,
+          p.descripcion ?? "",
+          p.category ?? "",
+          p.subcategory ?? "",
+          p.subSubcategory ?? "",
+        ].join(" ")
+      );
+
+      const textMatch = tokens.every((t) => searchable.includes(t));
+
+      return catMatch && textMatch;
+    });
+  }, [products, deferredSearch, selectedCategory]);
 
   return (
     <main className="relative flex flex-col flex-grow bg-white text-black">
@@ -139,7 +163,14 @@ export default function Home() {
           <div className="sticky top-0 z-[9999] shadow-md overflow-visible hidden md:block">
             <div className="bg-red-600 px-4 py-1">
               <div className="max-w-7xl mx-auto flex flex-col gap-4">
-                <SearchBar onSearch={(query) => setSearchTerm(query)} />
+                <SearchBar
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  onClear={() => {
+                    setSelectedCategory(null);
+                    setSearchTerm("");
+                  }}
+                />
                 <div className="flex justify-center">
                   <CategoryMenu
                     selectedCategory={selectedCategory}
@@ -163,7 +194,14 @@ export default function Home() {
               >
                 <Menu size={28} />
               </button>
-              <SearchBar onSearch={(query) => setSearchTerm(query)} />
+              <SearchBar
+                value={searchTerm}
+                onChange={setSearchTerm}
+                onClear={() => {
+                  setSelectedCategory(null);
+                  setSearchTerm("");
+                }}
+              />
             </div>
           </div>
 

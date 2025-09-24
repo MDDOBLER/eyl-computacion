@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchCategoryTree } from "@/lib/fetchCategories";
-import { X } from "lucide-react";
+import { X, ChevronRight, ChevronDown } from "lucide-react";
 
 type Categoria = {
   id: number;
@@ -52,75 +52,111 @@ export default function MobileSidebar({
 
   return (
     <div
-      className={`fixed top-0 left-0 h-full w-4/5 max-w-xs bg-red-600 text-white z-[9999] p-4 transform transition-transform duration-300 ${
-        isOpen ? "translate-x-0" : "-translate-x-full"
+      className={`fixed inset-0 z-[9999] md:hidden transition-opacity duration-300 ${
+        isOpen
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
       }`}
     >
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold">Categorías</h2>
-        <button onClick={onClose}>
-          <X size={24} />
-        </button>
-      </div>
+      {/* Backdrop con blur */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
-      <div className="flex flex-col gap-2 overflow-y-auto">
-        {categorias.map((cat) => (
-          <div key={cat.id}>
-            <button
-              onClick={() => toggleCategoria(cat.id)}
-              className="w-full text-left font-semibold py-2 px-2 hover:bg-red-700 rounded"
-            >
-              {cat.nombre}
-            </button>
+      {/* Panel */}
+      <aside
+        className={`absolute top-0 left-0 h-full w-4/5 max-w-xs transform transition-transform duration-300
+          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+          bg-red-600/90 backdrop-blur-md rounded-r-2xl shadow-2xl flex flex-col`}
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center px-4 pt-5 pb-3 border-b border-white/20">
+          <h2 className="text-lg font-bold text-white">Categorías</h2>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
+          >
+            <X size={22} className="text-white" />
+          </button>
+        </div>
 
-            {categoriaAbierta === cat.id && (
-              <div className="ml-4">
-                {cat.subcategorias.map((sub) => (
-                  <div key={sub.id}>
-                    <button
-                      onClick={() => toggleSub(sub.id)}
-                      className="w-full text-left py-1 px-2 hover:bg-red-700 rounded"
-                    >
-                      {sub.nombre}
-                    </button>
+        {/* Lista de categorías */}
+        <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1 scrollbar-none">
+          {categorias.map((cat) => (
+            <div key={cat.id}>
+              <button
+                onClick={() => toggleCategoria(cat.id)}
+                className="w-full flex justify-between items-center text-left font-semibold py-2 px-3 rounded-lg
+                           text-white/90 hover:bg-white/10 transition"
+              >
+                {cat.nombre}
+                {categoriaAbierta === cat.id ? (
+                  <ChevronDown size={18} />
+                ) : (
+                  <ChevronRight size={18} />
+                )}
+              </button>
 
-                    {subAbierta === sub.id &&
-                      sub.subsubcategorias.length > 0 && (
-                        <div className="ml-4">
-                          {sub.subsubcategorias.map((subsub) => (
+              {categoriaAbierta === cat.id && (
+                <div className="ml-3 mt-1 space-y-1">
+                  {cat.subcategorias.map((sub) => (
+                    <div key={sub.id}>
+                      <button
+                        onClick={() => toggleSub(sub.id)}
+                        className="w-full flex justify-between items-center text-left py-1.5 px-3 rounded-md
+                                   text-white/80 hover:bg-white/10 transition"
+                      >
+                        {sub.nombre}
+                        {subAbierta === sub.id ? (
+                          <ChevronDown size={16} />
+                        ) : (
+                          sub.subsubcategorias.length > 0 && (
+                            <ChevronRight size={16} />
+                          )
+                        )}
+                      </button>
+
+                      {subAbierta === sub.id && (
+                        <>
+                          {sub.subsubcategorias.length > 0 ? (
+                            <div className="ml-4 mt-1 space-y-1">
+                              {sub.subsubcategorias.map((subsub) => (
+                                <button
+                                  key={subsub.id}
+                                  onClick={() => {
+                                    onSelectCategory(subsub.nombre);
+                                    onClose();
+                                  }}
+                                  className="block w-full text-left py-1 px-3 rounded-md
+                                             text-white/70 hover:bg-white/20 transition"
+                                >
+                                  {subsub.nombre}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
                             <button
-                              key={subsub.id}
                               onClick={() => {
-                                onSelectCategory(subsub.nombre);
+                                onSelectCategory(sub.nombre);
                                 onClose();
                               }}
-                              className="block w-full text-left py-1 px-2 hover:bg-red-800 rounded"
+                              className="block w-full text-left py-1 px-3 rounded-md
+                                         text-white/70 hover:bg-white/20 transition ml-4"
                             >
-                              {subsub.nombre}
+                              Ver todo
                             </button>
-                          ))}
-                        </div>
+                          )}
+                        </>
                       )}
-
-                    {subAbierta === sub.id &&
-                      sub.subsubcategorias.length === 0 && (
-                        <button
-                          onClick={() => {
-                            onSelectCategory(sub.nombre);
-                            onClose();
-                          }}
-                          className="block w-full text-left py-1 px-2 hover:bg-red-800 rounded ml-4"
-                        >
-                          Ver todo
-                        </button>
-                      )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </aside>
     </div>
   );
 }
