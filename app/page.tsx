@@ -18,7 +18,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Tipamos el resultado crudo que viene de Supabase
+// Tipado del resultado crudo que viene de Supabase
 type ProductoRaw = {
   id: number;
   nombre: string;
@@ -32,13 +32,26 @@ type ProductoRaw = {
   isoffer?: boolean;
 };
 
-// --- helper: quita tildes y pasa a lowercase ---
+// --- helpers ---
 const normalize = (s: string) =>
   s
     .toLowerCase()
     .normalize("NFD")
-    // elimina marcas diacríticas combinantes (compatible sin ES2018)
     .replace(/[\u0300-\u036f]/g, "");
+
+function usdToArs(usd: number, dollarValue: number) {
+  const raw = usd * dollarValue; // una sola conversión, sin *1000
+  const rounded = Math.ceil(raw / 100) * 100; // redondeo a centenas
+  return rounded;
+}
+
+function formatArs(value: number) {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -51,12 +64,14 @@ export default function Home() {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const { data: dolarData, error: errorDolar } = await supabase
+        // 1) Traer el ÚLTIMO valor del dólar
+        const { data: dolarRows, error: errorDolar } = await supabase
           .from("dolar")
-          .select("valor")
-          .single();
+          .select("valor, created_at")
+          .order("created_at", { ascending: false })
+          .limit(1);
 
-        if (errorDolar || !dolarData?.valor) {
+        if (errorDolar || !dolarRows?.length) {
           console.error(
             "❌ No se pudo obtener el valor del dólar:",
             errorDolar
@@ -64,8 +79,9 @@ export default function Home() {
           return;
         }
 
-        const valorDolar = parseFloat(dolarData.valor);
+        const valorDolar = Number(dolarRows[0].valor);
 
+        // 2) Traer productos
         const { data: productosData, error: errorProductos } =
           await supabase.from("producto").select(`
             id,
@@ -88,20 +104,22 @@ export default function Home() {
           return;
         }
 
+        // base pública del bucket
+        const PUBLIC_BASE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos`;
+
         const mapped = (productosData as ProductoRaw[]).map((prod) => {
-          const precioPesos = prod.preciousd * valorDolar;
-          const precioRedondeado = Math.ceil(precioPesos / 100) * 100;
-          const precioFormateado = `$ ${precioRedondeado.toLocaleString(
-            "es-AR"
-          )}`;
+          const usd = Number(prod.preciousd || 0);
+
+          // DEBUG opcional para detectar import mal parseado:
+          // if (usd > 10000) console.warn("[precio sospechoso] preciousd:", usd, prod.nombre);
+
+          const precioArs = usdToArs(usd, valorDolar);
 
           return {
             id: prod.id,
             name: prod.nombre,
-            image: prod.nombreimagen
-              ? `/images/${prod.nombreimagen}`
-              : undefined,
-            price: precioFormateado,
+            image: `${PUBLIC_BASE}/${prod.nombreimagen || "default.webp"}`,
+            price: formatArs(precioArs),
             category: prod.categoria?.nombre || "",
             subcategory: prod.subcategoria?.nombre || "",
             subSubcategory: prod.subsubcategoria?.nombre || "",
