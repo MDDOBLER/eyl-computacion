@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { fetchCategoryTree } from '@/lib/fetchCategories';
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { fetchCategoryTree } from "@/lib/fetchCategories";
 
 type Categoria = {
   id: number;
@@ -19,110 +19,150 @@ type Props = {
   onSelectCategory: (name: string | null) => void;
 };
 
-export default function CategoryMenu({ selectedCategory, onSelectCategory }: Props) {
+export default function CategoryMenu({ onSelectCategory }: Props) {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [categoriaAbierta, setCategoriaAbierta] = useState<number | null>(null);
-  const [abrirIzquierda, setAbrirIzquierda] = useState<{ [key: number]: boolean }>({});
-  const menuRef = useRef<HTMLDivElement>(null);
-  const subRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const [abrirIzquierda, setAbrirIzquierda] = useState<Record<number, boolean>>(
+    {}
+  );
+
+  const menuWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const cargar = async () => {
+    (async () => {
       try {
         const data = await fetchCategoryTree();
         setCategorias(data);
       } catch (e) {
-        console.error('❌ Error al cargar categorías desde Supabase:', e);
+        console.error("❌ Error al cargar categorías desde Supabase:", e);
+      }
+    })();
+  }, []);
+
+  // Cerrar dropdown al click afuera
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (!menuWrapRef.current?.contains(e.target as Node)) {
+        setCategoriaAbierta(null);
       }
     };
-    cargar();
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
   }, []);
 
-  const toggleCategoria = (id: number) => {
-    setCategoriaAbierta((prev) => (prev === id ? null : id));
-  };
-
-  const handleClickOutside = (event: MouseEvent) => {
-    if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-      setCategoriaAbierta(null);
-    }
-  };
-
-  useEffect(() => {
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSubHover = (id: number) => {
-    const ref = subRefs.current.get(id);
-    if (!ref) return;
-    const rect = ref.getBoundingClientRect();
+  const handleSubHover = (id: number, el: HTMLDivElement | null) => {
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
     const spaceRight = window.innerWidth - rect.right;
-    setAbrirIzquierda((prev) => ({ ...prev, [id]: spaceRight < 250 }));
+    setAbrirIzquierda((prev) => ({ ...prev, [id]: spaceRight < 260 }));
   };
 
   return (
-    <div
-      ref={menuRef}
-      className="relative flex gap-6 text-sm font-semibold text-white mb-2 z-[9999] bg-red-600 p-2"
-    >
-      {categorias.map((cat) => (
-        <div key={cat.id} className="relative px-1">
-          <button
-            onClick={() => toggleCategoria(cat.id)}
-            className="flex items-center gap-1 text-white font-semibold whitespace-nowrap hover:underline"
-          >
-            {cat.nombre}
-            {categoriaAbierta === cat.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </button>
+    <div className="w-full text-white">
+      {/* Alineado al header; importante: overflow-visible para no recortar dropdowns */}
+      <div
+        ref={menuWrapRef}
+        className="relative w-full max-w-[1400px] mx-auto px-4 overflow-visible z-[60]"
+      >
+        {/* Botones centrados, compactos; SIN overflow en ul */}
+        <ul
+          className="
+            list-none flex flex-wrap justify-center items-center
+            gap-x-2 gap-y-1 overflow-visible
+          "
+        >
+          {categorias.map((cat) => (
+            <li key={cat.id} className="relative shrink-0">
+              <button
+                onClick={() =>
+                  setCategoriaAbierta((prev) =>
+                    prev === cat.id ? null : cat.id
+                  )
+                }
+                className="
+                  inline-flex items-center justify-center gap-1
+                  px-2 py-1.5 rounded-md text-sm font-semibold
+                  whitespace-nowrap bg-red-500/20 text-white
+                  hover:bg-red-500/30 transition-colors
+                "
+                aria-expanded={categoriaAbierta === cat.id}
+                aria-haspopup="true"
+              >
+                {cat.nombre}
+                {categoriaAbierta === cat.id ? (
+                  <ChevronUp size={14} />
+                ) : (
+                  <ChevronDown size={14} />
+                )}
+              </button>
 
-          {categoriaAbierta === cat.id && (
-            <div className="absolute top-full left-0 mt-1 w-48 bg-red-600 py-2 z-[9999] text-white">
-              {cat.subcategorias.map((sub) => (
+              {/* Dropdown: ya no se centra con transform; sale desde la izquierda.
+                  Z bien alto y contenedores con overflow-visible para evitar clipping. */}
+              {categoriaAbierta === cat.id && (
                 <div
-                  key={sub.id}
-                  className="relative group"
-                  ref={(el) => {
-                    if (el) subRefs.current.set(sub.id, el);
-                  }}
-                  onMouseEnter={() => handleSubHover(sub.id)}
+                  className="
+                    absolute left-0 top-[calc(100%+6px)]
+                    w-56 bg-red-600 text-white rounded-md shadow-lg py-2
+                    z-[9999]
+                  "
                 >
-                  {sub.subsubcategorias.length > 0 ? (
-                    <>
-                      <div className="px-4 py-2 cursor-pointer">
-                        {sub.nombre}
-                      </div>
-                      <div
-                        className={`absolute top-0 ${
-                          abrirIzquierda[sub.id] ? 'right-full' : 'left-full'
-                        } bg-red-600 w-48 hidden group-hover:block z-[9999] text-white`}
-                      >
-                        {sub.subsubcategorias.map((subsub) => (
-                          <div
-                            key={subsub.id}
-                            className="px-4 py-2 cursor-pointer"
-                            onClick={() => onSelectCategory(subsub.nombre)}
-                          >
-                            {subsub.nombre}
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
+                  {cat.subcategorias.map((sub) => (
                     <div
-                      className="px-4 py-2 cursor-pointer"
-                      onClick={() => onSelectCategory(sub.nombre)}
+                      key={sub.id}
+                      className="relative group"
+                      onMouseEnter={(e) =>
+                        handleSubHover(
+                          sub.id,
+                          e.currentTarget as unknown as HTMLDivElement
+                        )
+                      }
                     >
-                      {sub.nombre}
+                      {sub.subsubcategorias.length > 0 ? (
+                        <>
+                          <div className="px-4 py-2 cursor-pointer hover:bg-red-500/30">
+                            {sub.nombre}
+                          </div>
+                          <div
+                            className={[
+                              "absolute top-0 hidden group-hover:block w-56 bg-red-600 text-white rounded-md shadow-lg py-2",
+                              abrirIzquierda[sub.id]
+                                ? "right-full pr-2"
+                                : "left-full pl-2",
+                            ].join(" ")}
+                          >
+                            {sub.subsubcategorias.map((subsub) => (
+                              <div
+                                key={subsub.id}
+                                className="px-4 py-2 cursor-pointer hover:bg-red-500/30"
+                                onClick={() => {
+                                  onSelectCategory(subsub.nombre);
+                                  setCategoriaAbierta(null);
+                                }}
+                              >
+                                {subsub.nombre}
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div
+                          className="px-4 py-2 cursor-pointer hover:bg-red-500/30"
+                          onClick={() => {
+                            onSelectCategory(sub.nombre);
+                            setCategoriaAbierta(null);
+                          }}
+                        >
+                          {sub.nombre}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
-

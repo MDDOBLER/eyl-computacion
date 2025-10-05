@@ -40,7 +40,7 @@ const normalize = (s: string) =>
     .replace(/[\u0300-\u036f]/g, "");
 
 function usdToArs(usd: number, dollarValue: number) {
-  const raw = usd * dollarValue; // una sola conversión, sin *1000
+  const raw = usd * dollarValue; // una sola conversión
   const rounded = Math.ceil(raw / 100) * 100; // redondeo a centenas
   return rounded;
 }
@@ -109,10 +109,6 @@ export default function Home() {
 
         const mapped = (productosData as ProductoRaw[]).map((prod) => {
           const usd = Number(prod.preciousd || 0);
-
-          // DEBUG opcional para detectar import mal parseado:
-          // if (usd > 10000) console.warn("[precio sospechoso] preciousd:", usd, prod.nombre);
-
           const precioArs = usdToArs(usd, valorDolar);
 
           return {
@@ -142,32 +138,36 @@ export default function Home() {
   }, []);
 
   // --- filtro combinado y memoizado ---
+  // Si hay búsqueda → IGNORAMOS la categoría (búsqueda global).
+  // Si no hay búsqueda → aplicamos la categoría (si existe).
   const filteredProducts = useMemo(() => {
     const q = normalize(deferredSearch).trim();
-    const tokens = q.length ? q.split(/\s+/) : [];
+    const tokens = q ? q.split(/\s+/) : [];
 
+    if (tokens.length) {
+      // BÚSQUEDA GLOBAL
+      return products.filter((p) => {
+        const searchable = normalize(
+          [
+            p.name,
+            p.descripcion ?? "",
+            p.category ?? "",
+            p.subcategory ?? "",
+            p.subSubcategory ?? "",
+          ].join(" ")
+        );
+        return tokens.every((t) => searchable.includes(t));
+      });
+    }
+
+    // SIN BÚSQUEDA: aplicamos categoría seleccionada (si hay)
     return products.filter((p) => {
-      const catMatch =
+      return (
         !selectedCategory ||
         p.category === selectedCategory ||
         p.subcategory === selectedCategory ||
-        p.subSubcategory === selectedCategory;
-
-      if (!tokens.length) return catMatch;
-
-      const searchable = normalize(
-        [
-          p.name,
-          p.descripcion ?? "",
-          p.category ?? "",
-          p.subcategory ?? "",
-          p.subSubcategory ?? "",
-        ].join(" ")
+        p.subSubcategory === selectedCategory
       );
-
-      const textMatch = tokens.every((t) => searchable.includes(t));
-
-      return catMatch && textMatch;
     });
   }, [products, deferredSearch, selectedCategory]);
 
@@ -179,25 +179,29 @@ export default function Home() {
         <>
           {/* Sticky header en desktop */}
           <div className="sticky top-0 z-[9999] shadow-md overflow-visible hidden md:block">
-            <div className="bg-red-600 px-4 py-1">
-              <div className="max-w-7xl mx-auto flex flex-col gap-4">
+            {/* Barra roja de fondo */}
+            <div className="bg-red-600 px-0 py-1">
+              {/* FILA 1: buscador centrado */}
+              <div className="max-w-7xl mx-auto px-4">
                 <SearchBar
                   value={searchTerm}
                   onChange={setSearchTerm}
                   onClear={() => {
-                    setSelectedCategory(null);
+                    // ⬅️ solo limpiamos el texto; NO tocamos la categoría
                     setSearchTerm("");
                   }}
                 />
-                <div className="flex justify-center">
-                  <CategoryMenu
-                    selectedCategory={selectedCategory}
-                    onSelectCategory={(cat) => {
-                      setSelectedCategory(cat);
-                      setSearchTerm("");
-                    }}
-                  />
-                </div>
+              </div>
+
+              {/* FILA 2: menú de categorías */}
+              <div className="w-full">
+                <CategoryMenu
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={(cat) => {
+                    setSelectedCategory(cat);
+                    setSearchTerm(""); // si elige categoría, quitamos texto
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -216,7 +220,7 @@ export default function Home() {
                 value={searchTerm}
                 onChange={setSearchTerm}
                 onClear={() => {
-                  setSelectedCategory(null);
+                  // ⬅️ solo limpiamos el texto; NO tocamos la categoría
                   setSearchTerm("");
                 }}
               />
@@ -227,19 +231,20 @@ export default function Home() {
             <FeaturedCarousel />
 
             {!selectedCategory && searchTerm.trim() === "" && (
-              <div className="mt-24">
+              <div className="mt-16">
+                {/* ⬇️ MÁS CORTO: menos padding vertical */}
                 <div
-                  className="w-full py-24 shadow-md border-t border-white text-white text-center"
+                  className="w-full py-10 md:py-12 shadow-md border-t border-white text-white text-center"
                   style={{ backgroundColor: "#c0392b" }}
                 >
-                  <h2 className="uppercase tracking-wider font-extrabold text-5xl">
+                  <h2 className="uppercase tracking-wider font-extrabold text-4xl md:text-5xl">
                     OFERTAS
                   </h2>
-                  <p className="text-xl mt-4">
+                  <p className="text-base md:text-lg mt-3 md:mt-4">
                     ¡Aprovechá los mejores precios del mes!
                   </p>
                 </div>
-                <div className="px-6 mt-16">
+                <div className="px-6 mt-10 md:mt-12">
                   <ProductGrid products={products.filter((p) => p.isOffer)} />
                 </div>
               </div>
@@ -262,9 +267,11 @@ export default function Home() {
                 <div className="px-4 mt-6">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4">
                     Resultados{" "}
-                    {selectedCategory
+                    {searchTerm.trim()
+                      ? "de búsqueda"
+                      : selectedCategory
                       ? `en "${selectedCategory}"`
-                      : "de búsqueda"}
+                      : ""}
                   </h2>
                   {filteredProducts.length > 0 ? (
                     <ProductGrid products={filteredProducts} />
@@ -285,7 +292,7 @@ export default function Home() {
         onClose={() => setIsSidebarOpen(false)}
         onSelectCategory={(cat) => {
           setSelectedCategory(cat);
-          setSearchTerm("");
+          setSearchTerm(""); // al elegir categoría desde el sidebar, limpiamos búsqueda
         }}
       />
 

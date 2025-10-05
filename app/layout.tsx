@@ -1,13 +1,19 @@
-import '@/styles/globals.css';
-import { Inter } from 'next/font/google';
-import Footer from '@/components/Footer';
-import Header from '@/components/Header';
+import "@/styles/globals.css";
+import { Inter } from "next/font/google";
+import Footer from "@/components/Footer";
+import Header from "@/components/Header";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: 'E&L Computación',
-  description: 'Tienda de informática en Luján. San Martín 334 - Galería Abril - Local 5.',
+  title: "E&L Computación",
+  description:
+    "Tienda de informática en Luján. San Martín 334 - Galería Abril - Local 5.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon-32x32.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -27,4 +33,3 @@ export default function RootLayout({
     </html>
   );
 }
-
