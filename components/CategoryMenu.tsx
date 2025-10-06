@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { fetchCategoryTree } from "@/lib/fetchCategories";
+import { scrollToResults } from "@/utils/scrollToResults"; // 👈 nuevo
 
 type Categoria = {
   id: number;
@@ -57,14 +58,23 @@ export default function CategoryMenu({ onSelectCategory }: Props) {
     setAbrirIzquierda((prev) => ({ ...prev, [id]: spaceRight < 260 }));
   };
 
+  // 👇 seleccionar + cerrar + scrollear (con delay para mobile)
+  const handleSelectAndScroll = (name: string) => {
+    onSelectCategory(name);
+    setCategoriaAbierta(null);
+
+    // Pequeño delay para que los productos se rendericen antes de scrollear
+    setTimeout(() => {
+      scrollToResults(150); // ajustá offset según el alto del header
+    }, 400);
+  };
+
   return (
     <div className="w-full text-white">
-      {/* Alineado al header; importante: overflow-visible para no recortar dropdowns */}
       <div
         ref={menuWrapRef}
         className="relative w-full max-w-[1400px] mx-auto px-4 overflow-visible z-[60]"
       >
-        {/* Botones centrados, compactos; SIN overflow en ul */}
         <ul
           className="
             list-none flex flex-wrap justify-center items-center
@@ -96,8 +106,6 @@ export default function CategoryMenu({ onSelectCategory }: Props) {
                 )}
               </button>
 
-              {/* Dropdown: ya no se centra con transform; sale desde la izquierda.
-                  Z bien alto y contenedores con overflow-visible para evitar clipping. */}
               {categoriaAbierta === cat.id && (
                 <div
                   className="
@@ -134,10 +142,9 @@ export default function CategoryMenu({ onSelectCategory }: Props) {
                               <div
                                 key={subsub.id}
                                 className="px-4 py-2 cursor-pointer hover:bg-red-500/30"
-                                onClick={() => {
-                                  onSelectCategory(subsub.nombre);
-                                  setCategoriaAbierta(null);
-                                }}
+                                onClick={() =>
+                                  handleSelectAndScroll(subsub.nombre)
+                                } // 👈
                               >
                                 {subsub.nombre}
                               </div>
@@ -147,10 +154,7 @@ export default function CategoryMenu({ onSelectCategory }: Props) {
                       ) : (
                         <div
                           className="px-4 py-2 cursor-pointer hover:bg-red-500/30"
-                          onClick={() => {
-                            onSelectCategory(sub.nombre);
-                            setCategoriaAbierta(null);
-                          }}
+                          onClick={() => handleSelectAndScroll(sub.nombre)} // 👈
                         >
                           {sub.nombre}
                         </div>

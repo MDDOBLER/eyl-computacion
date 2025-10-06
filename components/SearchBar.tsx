@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, X } from "lucide-react";
+import { scrollToResults } from "@/utils/scrollToResults";
 
 type Props = {
   value: string; // valor controlado desde el padre
-  onChange: (v: string) => void; // setea el valor en el padre (debounced)
+  onChange: (v: string) => void; // setea el valor en el padre (solo al confirmar)
   onClear?: () => void; // limpiar filtros externos (cat seleccionada)
   placeholder?: string;
-  debounceMs?: number; // default 300ms
 };
 
 export default function SearchBar({
@@ -18,34 +18,36 @@ export default function SearchBar({
   onChange,
   onClear,
   placeholder = "Buscar producto, marca o modelo…",
-  debounceMs = 300,
 }: Props) {
   const pathname = usePathname();
 
-  // estado local para el input (para debounce)
   const [local, setLocal] = useState(value);
 
-  // sincroniza si el padre cambia el valor
   useEffect(() => setLocal(value), [value]);
 
-  // debounce: emite al padre sin recargar ni limpiar solo
-  useEffect(() => {
-    const t = setTimeout(() => onChange(local.trim()), debounceMs);
-    return () => clearTimeout(t);
-  }, [local, debounceMs, onChange]);
-
+  // ejecutar búsqueda solo al presionar Enter o botón
   const submit = (e?: React.FormEvent) => {
-    e?.preventDefault(); // evita recarga
+    e?.preventDefault();
     onChange(local.trim());
+    scrollToResults(130);
   };
 
+  // limpiar búsqueda → mostrar todos los productos
   const clear = () => {
     setLocal("");
-    onChange("");
+    onChange(""); // 🔥 esto vuelve a mostrar todos los productos automáticamente
     onClear?.();
+    // window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const hasText = local.trim().length > 0;
+
+  // 🔥 nueva lógica: si el usuario borra todo el texto manualmente
+  useEffect(() => {
+    if (local.trim() === "") {
+      onChange(""); // vuelve a mostrar todos los productos
+    }
+  }, [local, onChange]);
 
   return (
     <form
@@ -57,7 +59,6 @@ export default function SearchBar({
         className="shrink-0"
         aria-label="Ir al inicio"
         onClick={(e) => {
-          // si ya estamos en Home, no navegamos; solo limpiamos
           if (pathname === "/") e.preventDefault();
           onChange("");
           onClear?.();
@@ -75,9 +76,10 @@ export default function SearchBar({
           type="text"
           placeholder={placeholder}
           value={local}
-          onChange={(e) => setLocal(e.target.value)}
+          onChange={(e) => setLocal(e.target.value)} // actualiza local
           onKeyDown={(e) => {
             if (e.key === "Escape") clear();
+            // Enter ya lo maneja el submit
           }}
           aria-label="Buscar"
           className="w-full p-2 pl-4 pr-10 rounded border border-gray-300 focus:outline-none"
