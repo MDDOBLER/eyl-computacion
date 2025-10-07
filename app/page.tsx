@@ -53,6 +53,13 @@ function formatArs(value: number) {
   }).format(value);
 }
 
+// Filtro seleccionado dentro de los resultados de búsqueda
+type SearchFilter =
+  | { type: "all" }
+  | { type: "category"; value: string }
+  | { type: "subcategory"; value: string }
+  | { type: "subsub"; value: string };
+
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,6 +67,24 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Filtro interno que se aplica SOLO cuando hay búsqueda
+  const [searchFilter, setSearchFilter] = useState<SearchFilter>({
+    type: "all",
+  });
+
+  // 1) Cada vez que cambia la búsqueda, reseteamos filtro a "Todas"
+  useEffect(() => {
+    setSearchFilter({ type: "all" });
+  }, [deferredSearch]);
+
+  // 2) Si hay texto de búsqueda, forzamos a salir del modo "categoría manual"
+  //    para que se muestren los filtros (chips).
+  useEffect(() => {
+    if (deferredSearch.trim() !== "") {
+      setSelectedCategory(null);
+    }
+  }, [deferredSearch]);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -137,27 +162,95 @@ export default function Home() {
     loadProducts();
   }, []);
 
-  // --- filtro combinado y memoizado ---
-  // Si hay búsqueda → IGNORAMOS la categoría (búsqueda global).
-  // Si no hay búsqueda → aplicamos la categoría (si existe).
-  const filteredProducts = useMemo(() => {
+  // --- Preparación de búsqueda ---
+  const tokens = useMemo(() => {
     const q = normalize(deferredSearch).trim();
-    const tokens = q ? q.split(/\s+/) : [];
+    return q ? q.split(/\s+/) : [];
+  }, [deferredSearch]);
 
+  // Resultados de BÚSQUEDA global (sin aplicar filtro de categoría/sub/subsub aún)
+  const searchResults = useMemo(() => {
+    if (!tokens.length) return [];
+    return products.filter((p) => {
+      const searchable = normalize(
+        [
+          p.name,
+          p.descripcion ?? "",
+          p.category ?? "",
+          p.subcategory ?? "",
+          p.subSubcategory ?? "",
+        ].join(" ")
+      );
+      return tokens.every((t) => searchable.includes(t));
+    });
+  }, [products, tokens]);
+
+  // Opciones para chips: categorías, subcategorías y sub-subcategorías (desde resultados)
+  const { categoriesFromSearch, subcategoriesFromSearch, subsubsFromSearch } =
+    useMemo(() => {
+      const catSet = new Set<string>();
+      const subSet = new Set<string>();
+      const subSubSet = new Set<string>();
+      if (tokens.length) {
+        searchResults.forEach((p) => {
+          if (p.category) catSet.add(p.category);
+          if (p.subcategory) subSet.add(p.subcategory);
+          if (p.subSubcategory) subSubSet.add(p.subSubcategory);
+        });
+      }
+      return {
+        categoriesFromSearch: Array.from(catSet).sort((a, b) =>
+          a.localeCompare(b)
+        ),
+        subcategoriesFromSearch: Array.from(subSet).sort((a, b) =>
+          a.localeCompare(b)
+        ),
+        subsubsFromSearch: Array.from(subSubSet).sort((a, b) =>
+          a.localeCompare(b)
+        ),
+      };
+    }, [tokens, searchResults]);
+
+  // Unificamos todas las opciones en UNA sola tira de chips
+  type Chip =
+    | { k: "all"; label: "Todas" }
+    | { k: "category"; label: string }
+    | { k: "subcategory"; label: string }
+    | { k: "subsub"; label: string };
+
+  const chips: Chip[] = useMemo(() => {
+    if (!tokens.length) return [{ k: "all", label: "Todas" }];
+    return [
+      { k: "all", label: "Todas" },
+      ...categoriesFromSearch.map((c) => ({
+        k: "category" as const,
+        label: c,
+      })),
+      ...subcategoriesFromSearch.map((s) => ({
+        k: "subcategory" as const,
+        label: s,
+      })),
+      ...subsubsFromSearch.map((ss) => ({ k: "subsub" as const, label: ss })),
+    ];
+  }, [
+    tokens,
+    categoriesFromSearch,
+    subcategoriesFromSearch,
+    subsubsFromSearch,
+  ]);
+
+  // --- filtro combinado y memoizado ---
+  const filteredProducts = useMemo(() => {
     if (tokens.length) {
-      // BÚSQUEDA GLOBAL
-      return products.filter((p) => {
-        const searchable = normalize(
-          [
-            p.name,
-            p.descripcion ?? "",
-            p.category ?? "",
-            p.subcategory ?? "",
-            p.subSubcategory ?? "",
-          ].join(" ")
-        );
-        return tokens.every((t) => searchable.includes(t));
-      });
+      let res = searchResults;
+      if (searchFilter.type === "category") {
+        res = res.filter((p) => p.category === searchFilter.value);
+      } else if (searchFilter.type === "subcategory") {
+        res = res.filter((p) => p.subcategory === searchFilter.value);
+      } else if (searchFilter.type === "subsub") {
+        res = res.filter((p) => p.subSubcategory === searchFilter.value);
+      }
+      return res;
     }
 
     // SIN BÚSQUEDA: aplicamos categoría seleccionada (si hay)
@@ -169,7 +262,7 @@ export default function Home() {
         p.subSubcategory === selectedCategory
       );
     });
-  }, [products, deferredSearch, selectedCategory]);
+  }, [products, tokens, searchResults, selectedCategory, searchFilter]);
 
   return (
     <main className="relative flex flex-col flex-grow bg-white text-black">
@@ -187,19 +280,20 @@ export default function Home() {
                   value={searchTerm}
                   onChange={setSearchTerm}
                   onClear={() => {
-                    // ⬅️ solo limpiamos el texto; NO tocamos la categoría
+                    // solo limpiamos el texto; NO tocamos la categoría manual
                     setSearchTerm("");
                   }}
                 />
               </div>
 
-              {/* FILA 2: menú de categorías */}
+              {/* FILA 2: menú de categorías (solo navegación manual) */}
               <div className="w-full">
                 <CategoryMenu
                   selectedCategory={selectedCategory}
                   onSelectCategory={(cat) => {
                     setSelectedCategory(cat);
                     setSearchTerm(""); // si elige categoría, quitamos texto
+                    setSearchFilter({ type: "all" });
                   }}
                 />
               </div>
@@ -220,7 +314,6 @@ export default function Home() {
                 value={searchTerm}
                 onChange={setSearchTerm}
                 onClear={() => {
-                  // ⬅️ solo limpiamos el texto; NO tocamos la categoría
                   setSearchTerm("");
                 }}
               />
@@ -257,6 +350,7 @@ export default function Home() {
                     onClick={() => {
                       setSelectedCategory(null);
                       setSearchTerm("");
+                      setSearchFilter({ type: "all" });
                     }}
                     className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-xl"
                   >
@@ -273,6 +367,60 @@ export default function Home() {
                       ? `en "${selectedCategory}"`
                       : ""}
                   </h2>
+
+                  {/* Filtros SOLO cuando hay búsqueda activa */}
+                  {searchTerm.trim() !== "" && (
+                    <div className="mb-5 flex flex-wrap gap-2">
+                      {chips.map((chip) => {
+                        const active =
+                          (chip.k === "all" && searchFilter.type === "all") ||
+                          (chip.k === "category" &&
+                            searchFilter.type === "category" &&
+                            searchFilter.value === chip.label) ||
+                          (chip.k === "subcategory" &&
+                            searchFilter.type === "subcategory" &&
+                            searchFilter.value === chip.label) ||
+                          (chip.k === "subsub" &&
+                            searchFilter.type === "subsub" &&
+                            searchFilter.value === chip.label);
+
+                        const base =
+                          "px-3 py-1 rounded-full border text-sm transition-colors";
+                        const selected = "bg-red-600 text-white border-red-600";
+                        const idle =
+                          "bg-white text-black border-gray-300 hover:border-red-500 hover:text-red-600";
+
+                        return (
+                          <button
+                            key={`${chip.k}-${chip.label}`}
+                            className={`${base} ${active ? selected : idle}`}
+                            onClick={() => {
+                              if (chip.k === "all")
+                                setSearchFilter({ type: "all" });
+                              else if (chip.k === "category")
+                                setSearchFilter({
+                                  type: "category",
+                                  value: chip.label,
+                                });
+                              else if (chip.k === "subcategory")
+                                setSearchFilter({
+                                  type: "subcategory",
+                                  value: chip.label,
+                                });
+                              else
+                                setSearchFilter({
+                                  type: "subsub",
+                                  value: chip.label,
+                                });
+                            }}
+                          >
+                            {chip.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {filteredProducts.length > 0 ? (
                     <ProductGrid products={filteredProducts} />
                   ) : (
@@ -293,6 +441,7 @@ export default function Home() {
         onSelectCategory={(cat) => {
           setSelectedCategory(cat);
           setSearchTerm(""); // al elegir categoría desde el sidebar, limpiamos búsqueda
+          setSearchFilter({ type: "all" });
         }}
       />
 
