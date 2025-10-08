@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://www.eylcomputacion.com.ar/sitemap.xml
