@@ -12,6 +12,7 @@ import FeaturedCarousel from "@/components/FeaturedCarousel";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import MobileSidebar from "@/components/MobileSidebar";
 import { Product } from "@/types"; // Asegurate de tener este tipo bien definido
+import PromoTicker from "@/components/PromoTicker";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -270,6 +271,9 @@ export default function Home() {
         <Loader />
       ) : (
         <>
+          {/* Barra promo entre header y buscador */}
+          <PromoTicker />
+
           {/* Sticky header en desktop */}
           <div className="sticky top-0 z-[9999] shadow-md overflow-visible hidden md:block">
             {/* Barra roja de fondo */}

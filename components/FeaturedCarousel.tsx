@@ -140,18 +140,20 @@ export default function FeaturedCarousel() {
               className="flex-shrink-0"
               style={{ width: `${itemWidthPct}%` }} // ocupa siempre el ancho justo
             >
-              <img
-                src={src}
-                alt=""
-                className="
-                  w-full 
-                  h-[240px] sm:h-[260px] md:h-[300px] lg:h-[320px] xl:h-[340px]
-                  object-cover object-center rounded-xl
-                "
-                draggable={false}
-                loading="lazy"
-                onError={() => handleImgError(i)}
-              />
+              {/* Aspect ratio 3:2 (1620x1080) sin fondo añadido */}
+              <div
+                className="relative w-full rounded-xl overflow-hidden"
+                style={{ paddingBottom: "66.6667%" }} // (altura/ancho)*100 = 1080/1620
+              >
+                <img
+                  src={src}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                  draggable={false}
+                  loading="lazy"
+                  onError={() => handleImgError(i)}
+                />
+              </div>
             </div>
           ))}
         </div>
