@@ -2,7 +2,7 @@
 
 export default function PromoTicker() {
   const text =
-    "3 cuotas sin interés para los días miércoles y sábados. Para Visa y Master de todos los Bancos (Vigente del 24/10 al 30/11)";
+    "3 cuotas sin interés los días miércoles y sábados. Para Visa y Master de todos los Bancos (Vigente del 24/10 al 30/11)";
 
   return (
     <div className="w-full bg-[#7b001c] text-white text-sm sm:text-base overflow-hidden">
