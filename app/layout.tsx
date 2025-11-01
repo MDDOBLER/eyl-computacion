@@ -4,10 +4,9 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import type { Metadata } from "next";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  // Título por defecto y plantilla para subpáginas
   title: {
     default:
       "EyL Computación | Venta y reparación de PC, notebooks e impresoras",
@@ -26,9 +25,7 @@ export const metadata: Metadata = {
     "Luján",
   ],
   metadataBase: new URL("https://www.eylcomputacion.com.ar"),
-  alternates: {
-    canonical: "/",
-  },
+  alternates: { canonical: "/" },
   openGraph: {
     title: "EyL Computación",
     description:
@@ -70,7 +67,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es-AR" className="h-full">
+    // 👇 Evita overlays rojos o diferencias de render entre server y cliente
+    <html lang="es-AR" className="h-full" suppressHydrationWarning>
       <body className={`${inter.className} h-full relative z-0`}>
         <Header />
         <main className="flex flex-col flex-grow bg-white text-black">
