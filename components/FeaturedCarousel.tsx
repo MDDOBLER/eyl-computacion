@@ -7,19 +7,16 @@ const ALL_IMAGES = [
   "/images/carrusel1.jpg",
   "/images/carrusel2.jpg",
   "/images/carrusel3.jpg",
-  "/images/carrusel4.jpg", // si no existe, se oculta automáticamente
+  "/images/carrusel4.jpg", // opcional: si no existe, se remueve al vuelo
   "", // vacía: se filtra de entrada
 ];
 
 const AUTO_MS = 7000;
 
 export default function FeaturedCarousel() {
-  // Filtra strings vacíos / null / undefined
+  // Filtra strings vacíos/null/undefined una sola vez
   const initial = useMemo(
-    () =>
-      ALL_IMAGES.filter(
-        (src) => typeof src === "string" && src.trim().length > 0
-      ),
+    () => ALL_IMAGES.filter((src) => typeof src === "string" && src.trim()),
     []
   );
 
@@ -28,7 +25,6 @@ export default function FeaturedCarousel() {
 
   // slides "ideales" por viewport (1/2/3)
   const baseSlides = useRef(1);
-  // slides efectivos (nunca mayor a images.length)
   const [slidesPerView, setSlidesPerView] = useState(1);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -37,7 +33,7 @@ export default function FeaturedCarousel() {
   const len = images.length;
   const maxIndex = Math.max(0, len - slidesPerView);
 
-  // ---- Helpers de autoplay ----
+  // ---- Autoplay ----
   useEffect(() => {
     if (len <= 1) return;
     start();
@@ -51,7 +47,7 @@ export default function FeaturedCarousel() {
       timerRef.current = setTimeout(() => {
         setActiveIndex((i) => {
           const next = i + 1;
-          return next > maxIndex ? 0 : next; // nunca deja huecos al final
+          return next > maxIndex ? 0 : next;
         });
       }, AUTO_MS);
     }
@@ -62,7 +58,6 @@ export default function FeaturedCarousel() {
 
   function goTo(i: number) {
     stop();
-    // clamp al rango válido (evita “huecos”)
     const clamped = Math.min(Math.max(i, 0), maxIndex);
     setActiveIndex(clamped);
   }
@@ -73,21 +68,19 @@ export default function FeaturedCarousel() {
     goTo(activeIndex - 1 < 0 ? maxIndex : activeIndex - 1);
   }
 
-  // ---- Cálculo de slides por vista (responsive) ----
+  // ---- Responsive: calcula slides por vista ----
   useEffect(() => {
     function calcBase() {
       if (typeof window === "undefined") return 1;
       const w = window.innerWidth;
-      if (w >= 1024) return 3; // desktop
-      if (w >= 768) return 2; // tablet
-      return 1; // mobile
+      if (w >= 1024) return 3;
+      if (w >= 768) return 2;
+      return 1;
     }
     function apply() {
       baseSlides.current = calcBase();
-      // nunca mostrar más slots que imágenes disponibles
       const effective = Math.min(baseSlides.current, len || 1);
       setSlidesPerView(effective);
-      // si el índice quedó fuera de rango, se corrige
       setActiveIndex((i) => Math.min(i, Math.max(0, len - effective)));
     }
 
@@ -100,21 +93,12 @@ export default function FeaturedCarousel() {
 
     return () => {
       window.removeEventListener("resize", onResize);
-      if (ro && containerRef.current) ro.unobserve(containerRef.current);
+      if (ro) ro.disconnect();
     };
   }, [len]);
 
-  // ---- Si una imagen falla (404), la removemos) ----
-  function handleImgError(idx: number) {
-    setImages((prev) => {
-      const next = prev.filter((_, i) => i !== idx);
-      return next;
-    });
-  }
-
   if (len === 0) return null;
 
-  // ancho dinámico por tarjeta (sin huecos aunque haya 1 o 2 imágenes)
   const itemWidthPct = 100 / slidesPerView;
 
   return (
@@ -138,12 +122,12 @@ export default function FeaturedCarousel() {
             <div
               key={`${src}-${i}`}
               className="flex-shrink-0"
-              style={{ width: `${itemWidthPct}%` }} // ocupa siempre el ancho justo
+              style={{ width: `${itemWidthPct}%` }}
             >
-              {/* Aspect ratio 3:2 (1620x1080) sin fondo añadido */}
+              {/* Aspect ratio 3:2 (1620x1080) */}
               <div
                 className="relative w-full rounded-xl overflow-hidden"
-                style={{ paddingBottom: "66.6667%" }} // (altura/ancho)*100 = 1080/1620
+                style={{ paddingBottom: "66.6667%" }}
               >
                 <img
                   src={src}
@@ -151,14 +135,22 @@ export default function FeaturedCarousel() {
                   className="absolute inset-0 w-full h-full object-cover"
                   draggable={false}
                   loading="lazy"
-                  onError={() => handleImgError(i)}
+                  onError={() => {
+                    setImages((prev) => {
+                      const next = prev.filter((_, idx) => idx !== i);
+                      // nuevo maxIndex con el array ya filtrado
+                      const newMax = Math.max(0, next.length - slidesPerView);
+                      setActiveIndex((curr) => Math.min(curr, newMax));
+                      return next;
+                    });
+                  }}
                 />
               </div>
             </div>
           ))}
         </div>
 
-        {/* Flechas: solo si hay más imágenes que slots visibles */}
+        {/* Flechas */}
         {len > slidesPerView && (
           <>
             <button

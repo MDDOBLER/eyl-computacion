@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useDeferredValue } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
 import { Menu } from "lucide-react";
 
 import CategoryMenu from "@/components/CategoryMenu";
@@ -13,11 +13,6 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import MobileSidebar from "@/components/MobileSidebar";
 import { Product } from "@/types"; // Asegurate de tener este tipo bien definido
 import PromoTicker from "@/components/PromoTicker";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // Tipado del resultado crudo que viene de Supabase
 type ProductoRaw = {
