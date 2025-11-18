@@ -70,14 +70,15 @@ export default function RootLayout({
   return (
     <html lang="es-AR" className="h-full" suppressHydrationWarning>
       <body className={`${inter.className} h-full relative z-0`}>
-        <Header />
+        <Suspense fallback={<div></div>}>
+          <Header />
 
-        <main className="flex flex-col flex-grow bg-white text-black">
-          {/* 🔥 OBLIGATORIO en Next 16 debido a useSearchParams */}
-          <Suspense fallback={<div></div>}>{children}</Suspense>
-        </main>
+          <main className="flex flex-col flex-grow bg-white text-black">
+            {children}
+          </main>
 
-        <Footer />
+          <Footer />
+        </Suspense>
       </body>
     </html>
   );
