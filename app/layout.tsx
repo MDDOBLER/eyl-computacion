@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
@@ -67,13 +68,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    // 👇 Evita overlays rojos o diferencias de render entre server y cliente
     <html lang="es-AR" className="h-full" suppressHydrationWarning>
       <body className={`${inter.className} h-full relative z-0`}>
         <Header />
+
         <main className="flex flex-col flex-grow bg-white text-black">
-          {children}
+          {/* 🔥 OBLIGATORIO en Next 16 debido a useSearchParams */}
+          <Suspense fallback={<div></div>}>{children}</Suspense>
         </main>
+
         <Footer />
       </body>
     </html>
