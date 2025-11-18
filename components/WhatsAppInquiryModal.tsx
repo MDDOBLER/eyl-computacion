@@ -14,7 +14,10 @@ export default function WhatsAppInquiryModal({
   onClose,
   productName,
 }: Props) {
-  const phone = process.env.NEXT_PUBLIC_WA_PHONE || "";
+  // Número fijo del negocio (formato correcto para WhatsApp)
+  const phone = "542323681800";
+
+  // Mensaje con el nombre del producto
   const message = useMemo(() => {
     const base = `¡Hola! Quiero consultar por el producto: ${
       productName ?? "(sin nombre)"
@@ -22,8 +25,8 @@ export default function WhatsAppInquiryModal({
     return encodeURIComponent(base);
   }, [productName]);
 
+  // URL de WhatsApp 100% correcta
   const waHref = useMemo(() => {
-    if (!phone) return "#";
     return `https://wa.me/${phone}?text=${message}`;
   }, [phone, message]);
 
@@ -58,21 +61,16 @@ export default function WhatsAppInquiryModal({
           {productName || "Producto"}
         </p>
 
-        {!phone ? (
-          <p className="mt-4 text-sm text-red-600">
-            Falta configurar <code>NEXT_PUBLIC_WA_PHONE</code>.
-          </p>
-        ) : (
-          <a
-            href={waHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold shadow hover:shadow-md border border-gray-300"
-          >
-            <MessageCircle className="h-5 w-5" />
-            Abrir WhatsApp
-          </a>
-        )}
+        {/* Botón final que abre el chat de WhatsApp */}
+        <a
+          href={waHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold shadow hover:shadow-md border border-gray-300"
+        >
+          <MessageCircle className="h-5 w-5" />
+          Abrir WhatsApp
+        </a>
       </div>
     </div>
   );
