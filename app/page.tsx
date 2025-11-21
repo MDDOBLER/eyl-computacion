@@ -15,6 +15,9 @@ import MobileSidebar from "@/components/MobileSidebar";
 import { Product } from "@/types";
 import PromoTicker from "@/components/PromoTicker";
 
+// 👉 Modal externo ya modularizado
+import ProductModal from "@/components/ProductModal";
+
 // Tipado del resultado crudo que viene de Supabase
 type ProductoRaw = {
   id: string | number;
@@ -56,120 +59,6 @@ type SearchFilter =
   | { type: "category"; value: string }
   | { type: "subcategory"; value: string }
   | { type: "subsub"; value: string };
-
-// --- Modal de producto (overlay sobre la Home) ---
-type ProductModalProps = {
-  product: Product;
-  isOpen: boolean;
-  onClose: () => void;
-};
-
-function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
-  if (!isOpen) return null;
-
-  const productUrl = `${window.location.origin}/producto/${product.id}`;
-
-  const whatsappMessage =
-    `Hola! Estoy interesado en este producto 👇\n\n` +
-    `*${product.name}*\n\n` +
-    `Link: ${productUrl}`;
-
-  const whatsappUrl = `https://wa.me/542323681800?text=${encodeURIComponent(
-    whatsappMessage
-  )}`;
-
-  return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center">
-      <button
-        className="absolute inset-0 bg-black/40"
-        aria-label="Cerrar detalle del producto"
-        onClick={onClose}
-      />
-
-      <div className="relative z-[10001] w-[92%] max-w-md rounded-2xl bg-white p-4 shadow-2xl sm:w-full sm:p-6">
-        <button
-          className="absolute right-3 top-3 rounded-full bg-gray-100 px-2 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-200"
-          onClick={onClose}
-        >
-          ✕
-        </button>
-
-        {/* Imagen */}
-        <div className="mb-4 flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl border border-gray-200">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="max-h-full max-w-full object-contain"
-          />
-        </div>
-
-        {/* Info */}
-        <h2 className="mb-1 text-xl font-bold text-gray-900">{product.name}</h2>
-        <p className="mb-3 text-lg font-semibold text-red-600">
-          {product.price}
-        </p>
-
-        {product.descripcion && (
-          <p className="mb-3 text-sm text-gray-700">{product.descripcion}</p>
-        )}
-
-        {product.masinfo && (
-          <a
-            href={product.masinfo}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mb-4 inline-block text-sm text-blue-600 underline hover:text-blue-700"
-          >
-            Más info del fabricante
-          </a>
-        )}
-
-        {/* Botones principales */}
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <button
-            onClick={onClose}
-            className="w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 sm:w-auto"
-          >
-            Cerrar
-          </button>
-
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 rounded-xl bg-green-600 px-4 py-2 text-center text-sm font-semibold text-white shadow hover:bg-green-700"
-          >
-            Consultar por WhatsApp
-          </a>
-        </div>
-
-        {/* COMPARTIR */}
-        <button
-          onClick={() => {
-            const productUrl = `${window.location.origin}/producto/${product.id}`;
-            const message =
-              `Mirá lo que encontré en EyL Computación 👀🔥\n\n` +
-              `${product.name}\n` +
-              `${productUrl}`;
-
-            if (navigator.share) {
-              navigator.share({
-                title: product.name,
-                text: message, // 👈 mensaje + link juntos
-              });
-            } else {
-              navigator.clipboard.writeText(message);
-              alert("Enlace copiado al portapapeles 👍");
-            }
-          }}
-          className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white shadow hover:bg-blue-700"
-        >
-          Compartir producto
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -296,7 +185,7 @@ export default function Home() {
     // Si los productos aún no están cargados, esperamos
     if (!products || products.length === 0) return;
 
-    // Buscar producto por ID (string o número)
+    // Buscar producto por ID
     const found = products.find((p) => String(p.id) === String(productoParam));
 
     if (found) {
@@ -389,7 +278,10 @@ export default function Home() {
         k: "subcategory" as const,
         label: s,
       })),
-      ...subsubsFromSearch.map((ss) => ({ k: "subsub" as const, label: ss })),
+      ...subsubsFromSearch.map((ss) => ({
+        k: "subsub" as const,
+        label: ss,
+      })),
     ];
   }, [
     tokens,
@@ -429,13 +321,12 @@ export default function Home() {
         <Loader />
       ) : (
         <>
-          {/* Barra promo entre header y buscador */}
           <PromoTicker />
 
-          {/* Sticky header en desktop */}
+          {/* Sticky header desktop */}
           <div className="sticky top-0 z-[9999] shadow-md overflow-visible hidden md:block">
             <div className="bg-red-600 px-0 py-1">
-              {/* FILA 1: buscador */}
+              {/* FILA 1 */}
               <div className="max-w-7xl mx-auto px-4">
                 <SearchBar
                   value={searchTerm}
@@ -444,7 +335,7 @@ export default function Home() {
                 />
               </div>
 
-              {/* FILA 2: menú de categorías */}
+              {/* FILA 2 */}
               <div className="w-full">
                 <CategoryMenu
                   selectedCategory={selectedCategory}
@@ -479,7 +370,7 @@ export default function Home() {
           <div className="mt-4">
             <FeaturedCarousel />
 
-            {/* Sección OFERTAS */}
+            {/* OFERTAS */}
             {!selectedCategory && searchTerm.trim() === "" && (
               <div className="mt-16">
                 <div
@@ -499,7 +390,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* Resultados por categoría o búsqueda */}
+            {/* Resultados */}
             {(selectedCategory || searchTerm.trim() !== "") && (
               <>
                 <div className="px-4 mt-10 mb-6 text-center">
@@ -509,7 +400,7 @@ export default function Home() {
                       setSearchTerm("");
                       setSearchFilter({ type: "all" });
                     }}
-                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duración-300 transform hover:-translate-y-0.5 hover:shadow-xl"
+                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all"
                   >
                     <span className="text-xl">←</span> VER OFERTAS
                   </button>
@@ -525,7 +416,7 @@ export default function Home() {
                       : ""}
                   </h2>
 
-                  {/* Filtros SOLO con búsqueda */}
+                  {/* Chips */}
                   {searchTerm.trim() !== "" && (
                     <div className="mb-5 flex flex-wrap gap-2">
                       {chips.map((chip) => {
@@ -541,16 +432,14 @@ export default function Home() {
                             searchFilter.type === "subsub" &&
                             searchFilter.value === chip.label);
 
-                        const base =
-                          "px-3 py-1 rounded-full border text-sm transición-colors";
-                        const selected = "bg-red-600 text-white border-red-600";
-                        const idle =
-                          "bg-white text-black border-gray-300 hover:border-red-500 hover:text-red-600";
-
                         return (
                           <button
                             key={`${chip.k}-${chip.label}`}
-                            className={`${base} ${active ? selected : idle}`}
+                            className={`px-3 py-1 rounded-full border text-sm ${
+                              active
+                                ? "bg-red-600 text-white border-red-600"
+                                : "bg-white text-black border-gray-300 hover:border-red-500 hover:text-red-600"
+                            }`}
                             onClick={() => {
                               if (chip.k === "all")
                                 setSearchFilter({ type: "all" });
@@ -604,7 +493,7 @@ export default function Home() {
 
       <WhatsAppButton />
 
-      {/* Modal de producto vinculado al query param ?producto=ID */}
+      {/* Modal de producto */}
       {selectedProduct && (
         <ProductModal
           product={selectedProduct}
