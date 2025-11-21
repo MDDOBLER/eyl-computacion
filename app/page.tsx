@@ -67,14 +67,19 @@ type ProductModalProps = {
 function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
   if (!isOpen) return null;
 
-  const whatsappMessage = `Hola! Estoy interesado en el producto: ${product.name}`;
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
+  const productUrl = `${window.location.origin}/producto/${product.id}`;
+
+  const whatsappMessage =
+    `Hola! Estoy interesado en este producto 👇\n\n` +
+    `*${product.name}*\n\n` +
+    `Link: ${productUrl}`;
+
+  const whatsappUrl = `https://wa.me/542323681800?text=${encodeURIComponent(
     whatsappMessage
   )}`;
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center">
-      {/* Fondo semi-transparente */}
       <button
         className="absolute inset-0 bg-black/40"
         aria-label="Cerrar detalle del producto"
@@ -82,7 +87,6 @@ function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
       />
 
       <div className="relative z-[10001] w-[92%] max-w-md rounded-2xl bg-white p-4 shadow-2xl sm:w-full sm:p-6">
-        {/* Botón X de cerrar */}
         <button
           className="absolute right-3 top-3 rounded-full bg-gray-100 px-2 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-200"
           onClick={onClose}
@@ -128,6 +132,7 @@ function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
           >
             Cerrar
           </button>
+
           <a
             href={whatsappUrl}
             target="_blank"
@@ -138,19 +143,22 @@ function ProductModal({ product, isOpen, onClose }: ProductModalProps) {
           </a>
         </div>
 
-        {/* Botón de compartir */}
+        {/* COMPARTIR */}
         <button
           onClick={() => {
-            const url = window.location.href;
+            const productUrl = `${window.location.origin}/producto/${product.id}`;
+            const message =
+              `Mirá lo que encontré en EyL Computación 👀🔥\n\n` +
+              `${product.name}\n` +
+              `${productUrl}`;
 
             if (navigator.share) {
               navigator.share({
                 title: product.name,
-                text: "Mirá este producto de EyL Computación",
-                url,
+                text: message, // 👈 mensaje + link juntos
               });
             } else {
-              navigator.clipboard.writeText(url);
+              navigator.clipboard.writeText(message);
               alert("Enlace copiado al portapapeles 👍");
             }
           }}
