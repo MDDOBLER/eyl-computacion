@@ -1,12 +1,13 @@
 "use client";
 
+import React from "react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import ProductModal from "@/components/ProductModal";
 import { Product } from "@/types";
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 // 🔥 Tipo correcto del producto bruto desde Supabase
@@ -24,7 +25,8 @@ type ProductoRaw = {
 };
 
 export default function ProductPage({ params }: Props) {
-  const { id } = params;
+  // ⭐ FIX CRÍTICO: params ahora es una PROMESA y hay que resolverla con React.use()
+  const { id } = React.use(params);
 
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
@@ -42,7 +44,7 @@ export default function ProductPage({ params }: Props) {
         const valorDolar = Number(dolarRows?.[0]?.valor || 0);
 
         // Traer producto
-        const { data: prodRows, error } = await supabase
+        const { data: prodRows } = await supabase
           .from("producto")
           .select(
             `
@@ -61,8 +63,8 @@ export default function ProductPage({ params }: Props) {
           .eq("id", id)
           .limit(1);
 
-        if (error || !prodRows?.length) {
-          console.error("❌ Error obteniendo producto:", error);
+        if (!prodRows?.length) {
+          setProduct(null);
           return;
         }
 
