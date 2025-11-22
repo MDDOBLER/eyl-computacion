@@ -13,7 +13,11 @@ export default function ProductModal({
 }: ProductModalProps) {
   if (!isOpen || !product) return null;
 
-  const productUrl = `${window.location.origin}/producto/${product.id}`;
+  // ✅ Fix: evitar error en server-side
+  const productUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/producto/${product.id}`
+      : "";
 
   const whatsappMessage =
     `Hola! Estoy interesado en este producto 👇\n\n` +
