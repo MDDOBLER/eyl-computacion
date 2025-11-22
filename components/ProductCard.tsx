@@ -39,12 +39,14 @@ export default function ProductCard({ product, onSelect }: Props) {
         {product.subcategory && ` - ${product.subcategory}`}
       </p>
 
-      {/* Descripción */}
+      {/* ⚠️ Descripción REMOVIDA */}
+      {/*
       {product.descripcion && (
         <p className="text-sm text-gray-700 mt-2 line-clamp-3">
           {product.descripcion}
         </p>
       )}
+      */}
 
       {/* Precio */}
       <p className="mt-2 text-green-600 font-bold">{product.price}</p>
