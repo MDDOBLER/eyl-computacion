@@ -4,11 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const ALL_IMAGES = [
-  "/images/carrusel1.jpg",
-  "/images/carrusel2.jpg",
-  "/images/carrusel3.jpg",
-  "/images/carrusel4.jpg", // opcional: si no existe, se remueve al vuelo
-  "", // vacía: se filtra de entrada
+  "/images/carrusel1.jpg?v=3",
+  "/images/carrusel2.jpg?v=3",
+  "/images/carrusel3.jpg?v=3",
+  "/images/carrusel4.jpg?v=3", // opcional: si no existe, se remueve al vuelo
 ];
 
 const AUTO_MS = 7000;
